@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TaskStatus {
+  backlog
+  todo
+  in_progress
+  review
+  done
+}
+
+enum AgentType {
+  claude_code
+  codex_cli
+  gemini_cli
+  cursor_cli
+  openclaw_cli
+  custom
+}
+
+model Task {
+  id            String          @id @default(cuid())
+  title         String
+  description   String
+  assignedAgent AgentType
+  startTime     DateTime
+  status        TaskStatus      @default(backlog)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  subtasks      Subtask[]
+  comments      Comment[]
+  history       TaskHistory[]
+  executions    AgentExecution[]
+}
+
+model Subtask {
+  id          String   @id @default(cuid())
+  taskId      String
+  title       String
+  generatedBy String
+  done        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  taskId    String
+  author    String
+  type      String
+  content   String
+  createdAt DateTime @default(now())
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
+
+model TaskHistory {
+  id        String   @id @default(cuid())
+  taskId    String
+  action    String
+  actor     String
+  metadata  Json?
+  createdAt DateTime @default(now())
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
+
+model AgentExecution {
+  id        String   @id @default(cuid())
+  taskId    String
+  command   String
+  stdout    String
+  stderr    String
+  exitCode  Int
+  startedAt DateTime
+  endedAt   DateTime
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
